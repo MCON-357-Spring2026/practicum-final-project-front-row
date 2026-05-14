@@ -1,0 +1,19 @@
+# Local PostgreSQL for Chapterly development and running SQL migrations.
+# Start with: docker compose up -d
+# Connection string for backend/.env:
+# DATABASE_URL=postgres://postgres:postgres@localhost:5432/chapterly
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: chapterly
+    ports:
+      - "5432:5432"
+    volumes:
+      - chapterly_pgdata:/var/lib/postgresql/data
+
+volumes:
+  chapterly_pgdata:
