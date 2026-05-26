@@ -1,68 +1,54 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/FHXdZx9N)
-# RecipeShare
+# Chapterly (boilerplate)
 
-RecipeShare is a web application built with Spring Boot that allows users to create, search, and share recipes. The goal of RecipeShare is to provide an easy-to-use platform for discovering new recipes, sharing your own, and connecting with other cooking enthusiasts.
+Chapterly is a digital journaling app for documenting life chapters (for example, college or a focused season of life). This repository currently contains **minimal boilerplate** only: a Node.js + Express API and a Vite + React web client.
 
-## Goals
+## Repository layout
 
-- Allow users to create and manage their own recipes.
-- Enable searching and browsing of recipes by category, ingredients, or keywords.
-- Provide sharing features so users can share recipes with others.
-- Offer a simple, intuitive web interface.
+- `backend/`: Express server and PostgreSQL migrations (`backend/migrations/`).
+- `frontend/`: Vite + React web client.
+- `docker-compose.yml`: optional local PostgreSQL database.
 
-## Features
+## Local development
 
-- RESTful API for recipe management.
-- Web-based user interface.
-- Recipe search and filtering.
-- Recipe sharing functionality.
+### PostgreSQL (optional but recommended)
 
-## Installation
+From the repository root:
 
-### Prerequisites
+```bash
+docker compose up -d
+```
 
-- Java 17 or higher
-- Maven 3.8+
-- Git
+### Backend
 
-### Steps
+```bash
+cd backend
+npm install
+cp .env.example .env
+npm run migrate
+npm run dev
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/recipeshare.git
-   cd recipeshare
-   ```
+The `migrate` script applies SQL migrations using `DATABASE_URL` (see `backend/.env.example`). Node **20.11+** is required for `node-pg-migrate`.
 
-2. **Build the project**
-   ```bash
-   mvn clean install
-   ```
+If `npm run migrate` fails with **database "chapterly" does not exist**, create the database once (`createdb chapterly` on macOS with local Postgres, or use Docker Compose above which creates it automatically).
 
-3. **Run the application**
-   ```bash
-   mvn spring-boot:run
-   ```
-   The application will start on [http://localhost:8081](http://localhost:8081).
+### Frontend
 
-## Usage
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-- Access the home page at [http://localhost:8081](http://localhost:8081).
-- Use the API endpoints to create, search, and share recipes (see API documentation for details).
+## Tests
 
-## Contributing
+```bash
+cd backend && npm test
+cd frontend && npm test
+```
 
-Contributions are welcome! Please fork the repository and submit a pull request.
+## Migrations
 
-## License
-
-This project is licensed under the MIT License.
-
-## Contact
-
-For questions or feedback, please open an issue on GitHub.
-
-## Reference Documentation
-
-- [Spring Boot Documentation](https://spring.io/projects/spring-boot)
-- [Apache Maven Documentation](https://maven.apache.org/guides/index.html)
-
+- **Apply:** `cd backend && npm run migrate`
+- **Rollback last batch:** `npm run migrate:down`
+- **New migration file:** `npm run migrate:create -- <name>` (creates a timestamped file under `backend/migrations/`)
