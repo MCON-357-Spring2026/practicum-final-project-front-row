@@ -7,9 +7,11 @@ import { render, screen } from '@testing-library/react';
 import { App } from './App.jsx';
 
 describe('App', () => {
-  test('renders the product name', () => {
+  test('renders the product name on the auth screen', async () => {
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: /chapterly/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /chapterly/i }),
+    ).toBeInTheDocument();
   });
 });
