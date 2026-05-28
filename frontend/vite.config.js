@@ -10,6 +10,14 @@ export default defineConfig({
   server: {
     // Keeps the API on 4000 and the UI on 5173 during local development.
     port: 5173,
+    // Forward API calls to the Express backend so the browser can use relative
+    // "/api/..." paths without CORS or hard-coded hostnames.
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+      },
+    },
   },
   test: {
     environment: 'jsdom',

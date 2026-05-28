@@ -7,6 +7,7 @@ import express from 'express';
 import cors from 'cors';
 import { authRoutes } from './routes/authRoutes.js';
 import { chapterRoutes } from './routes/chapterRoutes.js';
+import { goalRoutes } from './routes/goalRoutes.js';
 import { journalRoutes } from './routes/journalRoutes.js';
 import { photoRoutes } from './routes/photoRoutes.js';
 import { integrationRoutes } from './routes/integrationRoutes.js';
@@ -28,6 +29,7 @@ export function createApp() {
 
   app.use('/api/auth', authRoutes);
   app.use('/api/chapters', chapterRoutes);
+  app.use('/api/goals', goalRoutes);
   app.use('/api/journal-entries', journalRoutes);
   app.use('/api/photos', photoRoutes);
   app.use('/api/integrations', integrationRoutes);

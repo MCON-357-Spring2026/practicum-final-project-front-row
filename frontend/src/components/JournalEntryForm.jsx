@@ -20,62 +20,73 @@ export function JournalEntryForm({
   const [goalTitle, setGoalTitle] = useState('');
   const [goalNotes, setGoalNotes] = useState('');
   const [message, setMessage] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   function showSaved(text) {
     setMessage(text);
     window.setTimeout(() => setMessage(''), 2500);
   }
 
-  function handleSaveStory(event) {
+  async function handleSaveStory(event) {
     event.preventDefault();
     if (!storyTitle.trim() || !storyBody.trim()) {
       setMessage('Add both a title and story text.');
       return;
     }
 
-    onAddStory({ title: storyTitle, body: storyBody });
-    setStoryTitle('');
-    setStoryBody('');
-    showSaved('Story saved.');
+    try {
+      await onAddStory({ title: storyTitle, body: storyBody });
+      setStoryTitle('');
+      setStoryBody('');
+      showSaved('Story saved.');
+    } catch (err) {
+      setMessage(err.message || 'Could not save story.');
+    }
   }
 
   function handleFileChange(event) {
     setSelectedFiles(Array.from(event.target.files ?? []));
   }
 
-  function handleAddPhotos(event) {
+  async function handleAddPhotos(event) {
     event.preventDefault();
     if (selectedFiles.length === 0) {
       setMessage('Choose at least one image.');
       return;
     }
 
-    // Store object URLs for preview in the scrapbook (demo-friendly).
-    const entries = selectedFiles.map((file) => ({
-      id: `${Date.now()}-${file.name}`,
-      name: file.name,
-      previewUrl: URL.createObjectURL(file),
-      caption: photoCaption.trim(),
-      createdAt: new Date().toISOString(),
-    }));
-
-    onAddPhotos(entries);
-    setSelectedFiles([]);
-    setPhotoCaption('');
-    showSaved(`${entries.length} photo(s) added.`);
+    setUploading(true);
+    setMessage('Uploading…');
+    try {
+      const count = await onAddPhotos({
+        files: selectedFiles,
+        caption: photoCaption.trim(),
+      });
+      setSelectedFiles([]);
+      setPhotoCaption('');
+      showSaved(`${count} photo(s) uploaded.`);
+    } catch (err) {
+      setMessage(err.message || 'Photo upload failed.');
+    } finally {
+      setUploading(false);
+    }
   }
 
-  function handleAddGoal(event) {
+  async function handleAddGoal(event) {
     event.preventDefault();
     if (!goalTitle.trim()) {
       setMessage('Goal title is required.');
       return;
     }
 
-    onAddGoal({ title: goalTitle, notes: goalNotes });
-    setGoalTitle('');
-    setGoalNotes('');
-    showSaved('Goal added.');
+    try {
+      await onAddGoal({ title: goalTitle, notes: goalNotes });
+      setGoalTitle('');
+      setGoalNotes('');
+      showSaved('Goal added.');
+    } catch (err) {
+      setMessage(err.message || 'Could not add goal.');
+    }
   }
 
   return (
@@ -146,8 +157,8 @@ export function JournalEntryForm({
             placeholder="Sukkos lunch on the quad"
           />
         </label>
-        <button type="submit" className="btn btn--secondary">
-          Add photos
+        <button type="submit" className="btn btn--secondary" disabled={uploading}>
+          {uploading ? 'Uploading…' : 'Add photos'}
         </button>
       </form>
 
