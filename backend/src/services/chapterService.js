@@ -10,6 +10,8 @@ function mapChapter(row) {
     id: row.id,
     title: row.title,
     summary: row.summary,
+    emoji: row.emoji,
+    templateId: row.template_id,
     startedOn: row.started_on,
     endedOn: row.ended_on,
     createdAt: row.created_at,
@@ -19,7 +21,7 @@ function mapChapter(row) {
 
 export async function listChapters(userId) {
   const result = await query(
-    `SELECT id, title, summary, started_on, ended_on, created_at, updated_at
+    `SELECT id, title, summary, emoji, template_id, started_on, ended_on, created_at, updated_at
      FROM chapters
      WHERE user_id = $1
      ORDER BY created_at DESC`,
@@ -29,12 +31,23 @@ export async function listChapters(userId) {
   return result.rows.map(mapChapter);
 }
 
-export async function createChapter(userId, { title, summary, startedOn, endedOn }) {
+export async function createChapter(
+  userId,
+  { title, summary, emoji, templateId, startedOn, endedOn },
+) {
   const result = await query(
-    `INSERT INTO chapters (user_id, title, summary, started_on, ended_on)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING id, title, summary, started_on, ended_on, created_at, updated_at`,
-    [userId, title.trim(), summary?.trim() || null, startedOn || null, endedOn || null],
+    `INSERT INTO chapters (user_id, title, summary, emoji, template_id, started_on, ended_on)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING id, title, summary, emoji, template_id, started_on, ended_on, created_at, updated_at`,
+    [
+      userId,
+      title.trim(),
+      summary?.trim() || null,
+      emoji?.trim() || null,
+      templateId?.trim() || null,
+      startedOn || null,
+      endedOn || null,
+    ],
   );
 
   return mapChapter(result.rows[0]);

@@ -19,7 +19,8 @@ export function App() {
     user,
     chapters,
     activeChapter,
-    signIn,
+    login,
+    register,
     signOut,
     startChapterFromTemplate,
     openChapter,
@@ -44,7 +45,7 @@ export function App() {
   if (!user) {
     return (
       <main className="app-shell app-shell--auth">
-        <AuthForm onSignIn={signIn} />
+        <AuthForm onLogin={login} onRegister={register} />
       </main>
     );
   }
@@ -60,8 +61,8 @@ export function App() {
             signOut();
             setView('auth');
           }}
-          onStartChapter={(template, customTitle) => {
-            startChapterFromTemplate(template, customTitle);
+          onStartChapter={async (template, customTitle) => {
+            await startChapterFromTemplate(template, customTitle);
             setView('journal');
           }}
           onOpenJournal={(chapterId) => {
@@ -85,8 +86,8 @@ export function App() {
           user={user}
           chapters={chapters}
           onSignOut={signOut}
-          onStartChapter={(template, customTitle) => {
-            startChapterFromTemplate(template, customTitle);
+          onStartChapter={async (template, customTitle) => {
+            await startChapterFromTemplate(template, customTitle);
             setView('journal');
           }}
           onOpenJournal={(chapterId) => {

@@ -22,7 +22,7 @@ chapterRoutes.get(
 chapterRoutes.post(
   '/',
   asyncHandler(async (req, res) => {
-    const { title, summary, startedOn, endedOn } = req.body;
+    const { title, summary, emoji, templateId, startedOn, endedOn } = req.body;
     if (!title?.trim()) {
       return res.status(400).json({ error: 'title is required' });
     }
@@ -30,6 +30,8 @@ chapterRoutes.post(
     const chapter = await chapterService.createChapter(req.user.id, {
       title,
       summary,
+      emoji,
+      templateId,
       startedOn,
       endedOn,
     });

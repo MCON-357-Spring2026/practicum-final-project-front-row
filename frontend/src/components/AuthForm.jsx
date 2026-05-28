@@ -1,18 +1,19 @@
 /**
  * Login and sign-up UI.
- * Validates input on the client; credentials are not sent to a server yet.
+ * Validates input on the client, then calls the Chapterly auth API.
  */
 
 import { useState } from 'react';
 
-export function AuthForm({ onSignIn }) {
+export function AuthForm({ onLogin, onRegister }) {
   const [mode, setMode] = useState('login');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     setError('');
 
@@ -21,16 +22,29 @@ export function AuthForm({ onSignIn }) {
       return;
     }
 
-    if (mode === 'signup' && !displayName.trim()) {
-      setError('Please add a display name for sign up.');
-      return;
+    if (mode === 'signup') {
+      if (!displayName.trim()) {
+        setError('Please add a display name for sign up.');
+        return;
+      }
+      if (password.length < 8) {
+        setError('Password must be at least 8 characters.');
+        return;
+      }
     }
 
-    // Demo auth only — wire to POST /api/auth when the backend is ready.
-    onSignIn({
-      email,
-      displayName: mode === 'signup' ? displayName : email.split('@')[0],
-    });
+    setSubmitting(true);
+    try {
+      if (mode === 'signup') {
+        await onRegister({ email, password, displayName });
+      } else {
+        await onLogin({ email, password });
+      }
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -109,8 +123,16 @@ export function AuthForm({ onSignIn }) {
           </p>
         )}
 
-        <button type="submit" className="btn btn--primary btn--block">
-          {mode === 'login' ? 'Log in' : 'Create account'}
+        <button
+          type="submit"
+          className="btn btn--primary btn--block"
+          disabled={submitting}
+        >
+          {submitting
+            ? 'Please wait…'
+            : mode === 'login'
+              ? 'Log in'
+              : 'Create account'}
         </button>
       </form>
     </section>

@@ -1,33 +1,51 @@
 /**
- * Central client-side state for the Chapterly UI.
+ * Central client-side state for the Chapterly UI, backed by the Express API.
  *
  * Flow: auth → pick chapter on dashboard → journal → scrapbook reads the same data.
- * Data is stored in localStorage so refreshes keep your demo entries.
- * When the Express API adds routes, replace the localStorage helpers with fetch calls.
+ * Chapters, journal entries (stories), and goals are persisted in PostgreSQL via
+ * the API. Photos remain in-browser only (the upload endpoint needs Cloudinary
+ * credentials that are not configured for local development).
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { api, setToken, getToken } from '../api/client.js';
 
-const STORAGE_KEY = 'chapterly-app-state-v1';
+/**
+ * Folds the flat API responses (chapters + entries + goals + photos) into the
+ * nested shape the UI components expect: chapter.stories / .goals / .photos.
+ */
+function composeChapters(chapters, entries, goals, photos) {
+  const entriesByChapter = groupBy(entries, 'chapterId');
+  const goalsByChapter = groupBy(goals, 'chapterId');
+  const photosByChapter = groupBy(photos.map(normalizePhoto), 'chapterId');
 
-function createId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  return chapters.map((chapter) => ({
+    ...chapter,
+    stories: entriesByChapter[chapter.id] ?? [],
+    goals: goalsByChapter[chapter.id] ?? [],
+    photos: photosByChapter[chapter.id] ?? [],
+  }));
 }
 
-function loadPersistedState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return { user: null, chapters: [], activeChapterId: null };
-    }
-    return JSON.parse(raw);
-  } catch {
-    return { user: null, chapters: [], activeChapterId: null };
-  }
+/**
+ * Maps an API photo (Cloudinary `url`) onto the field names the UI renders.
+ */
+function normalizePhoto(photo) {
+  return {
+    id: photo.id,
+    chapterId: photo.chapterId,
+    previewUrl: photo.url,
+    caption: photo.caption ?? '',
+    name: photo.caption || 'Photo',
+    createdAt: photo.createdAt,
+  };
 }
 
-function savePersistedState(snapshot) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+function groupBy(rows, key) {
+  return rows.reduce((acc, row) => {
+    (acc[row[key]] ??= []).push(row);
+    return acc;
+  }, {});
 }
 
 export function useChapterlyState() {
@@ -35,56 +53,98 @@ export function useChapterlyState() {
   const [chapters, setChapters] = useState([]);
   const [activeChapterId, setActiveChapterId] = useState(null);
   const [hydrated, setHydrated] = useState(false);
+  const [error, setError] = useState('');
 
-  // Restore saved session once when the app mounts in the browser.
-  useEffect(() => {
-    const saved = loadPersistedState();
-    setUser(saved.user);
-    setChapters(saved.chapters ?? []);
-    setActiveChapterId(saved.activeChapterId);
-    setHydrated(true);
+  const loadEverything = useCallback(async () => {
+    const [{ chapters: rawChapters }, { entries }, { goals }, { photos }] =
+      await Promise.all([
+        api.listChapters(),
+        api.listJournalEntries(),
+        api.listGoals(),
+        api.listPhotos(),
+      ]);
+    setChapters(composeChapters(rawChapters, entries, goals, photos));
   }, []);
 
-  // Keep localStorage in sync whenever core data changes.
+  // On first mount, restore the session from a saved token (if any).
   useEffect(() => {
-    if (!hydrated) {
-      return;
+    let cancelled = false;
+
+    async function restore() {
+      const token = getToken();
+      if (!token) {
+        if (!cancelled) setHydrated(true);
+        return;
+      }
+
+      try {
+        const { user: me } = await api.me();
+        if (cancelled) return;
+        setUser(me);
+        await loadEverything();
+      } catch {
+        // Token expired or invalid — drop it and start at the auth screen.
+        setToken(null);
+      } finally {
+        if (!cancelled) setHydrated(true);
+      }
     }
-    savePersistedState({ user, chapters, activeChapterId });
-  }, [user, chapters, activeChapterId, hydrated]);
 
-  const activeChapter = chapters.find((c) => c.id === activeChapterId) ?? null;
+    restore();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadEverything]);
 
-  const signIn = useCallback(({ email, displayName }) => {
-    setUser({
-      email: email.trim().toLowerCase(),
-      displayName: displayName?.trim() || email.split('@')[0],
-    });
-  }, []);
+  const register = useCallback(
+    async ({ email, password, displayName }) => {
+      setError('');
+      const { token, user: created } = await api.register({
+        email,
+        password,
+        displayName,
+      });
+      setToken(token);
+      setUser(created);
+      await loadEverything();
+    },
+    [loadEverything],
+  );
+
+  const login = useCallback(
+    async ({ email, password }) => {
+      setError('');
+      const { token, user: signedIn } = await api.login({ email, password });
+      setToken(token);
+      setUser(signedIn);
+      await loadEverything();
+    },
+    [loadEverything],
+  );
 
   const signOut = useCallback(() => {
+    setToken(null);
     setUser(null);
+    setChapters([]);
     setActiveChapterId(null);
   }, []);
 
-  const startChapterFromTemplate = useCallback((template, customTitle) => {
+  const activeChapter = chapters.find((c) => c.id === activeChapterId) ?? null;
+
+  const startChapterFromTemplate = useCallback(async (template, customTitle) => {
     const title =
       template.id === 'custom'
         ? customTitle?.trim() || 'My Chapter'
         : template.title;
 
-    const chapter = {
-      id: createId(),
-      templateId: template.id,
+    const { chapter } = await api.createChapter({
       title,
       emoji: template.emoji,
-      stories: [],
-      goals: [],
-      photos: [],
-      createdAt: new Date().toISOString(),
-    };
+      templateId: template.id,
+    });
 
-    setChapters((prev) => [...prev, chapter]);
+    const composed = { ...chapter, stories: [], goals: [], photos: [] };
+    setChapters((prev) => [composed, ...prev]);
     setActiveChapterId(chapter.id);
     return chapter.id;
   }, []);
@@ -93,32 +153,19 @@ export function useChapterlyState() {
     setActiveChapterId(chapterId);
   }, []);
 
-  const addStory = useCallback((chapterId, { title, body }) => {
-    const story = {
-      id: createId(),
-      title: title.trim(),
-      body: body.trim(),
-      createdAt: new Date().toISOString(),
-    };
-
+  const addStory = useCallback(async (chapterId, { title, body }) => {
+    const { entry } = await api.createJournalEntry({ chapterId, title, body });
     setChapters((prev) =>
       prev.map((chapter) =>
         chapter.id === chapterId
-          ? { ...chapter, stories: [story, ...chapter.stories] }
+          ? { ...chapter, stories: [entry, ...chapter.stories] }
           : chapter,
       ),
     );
   }, []);
 
-  const addGoal = useCallback((chapterId, { title, notes }) => {
-    const goal = {
-      id: createId(),
-      title: title.trim(),
-      notes: notes?.trim() ?? '',
-      isCompleted: false,
-      createdAt: new Date().toISOString(),
-    };
-
+  const addGoal = useCallback(async (chapterId, { title, notes }) => {
+    const { goal } = await api.createGoal({ chapterId, title, notes });
     setChapters((prev) =>
       prev.map((chapter) =>
         chapter.id === chapterId
@@ -128,42 +175,56 @@ export function useChapterlyState() {
     );
   }, []);
 
-  const toggleGoal = useCallback((chapterId, goalId) => {
-    setChapters((prev) =>
-      prev.map((chapter) => {
-        if (chapter.id !== chapterId) {
-          return chapter;
-        }
+  const toggleGoal = useCallback(
+    async (chapterId, goalId) => {
+      const chapter = chapters.find((c) => c.id === chapterId);
+      const current = chapter?.goals.find((g) => g.id === goalId);
+      if (!current) return;
 
-        return {
-          ...chapter,
-          goals: chapter.goals.map((goal) =>
-            goal.id === goalId
-              ? { ...goal, isCompleted: !goal.isCompleted }
-              : goal,
-          ),
-        };
-      }),
-    );
-  }, []);
+      const { goal } = await api.updateGoal(goalId, {
+        isCompleted: !current.isCompleted,
+      });
 
-  const addPhotos = useCallback((chapterId, photoEntries) => {
+      setChapters((prev) =>
+        prev.map((c) =>
+          c.id === chapterId
+            ? { ...c, goals: c.goals.map((g) => (g.id === goalId ? goal : g)) }
+            : c,
+        ),
+      );
+    },
+    [chapters],
+  );
+
+  // Uploads each selected file to Cloudinary via the API, then appends the saved
+  // photos (with permanent URLs) to the chapter.
+  const addPhotos = useCallback(async (chapterId, { files, caption }) => {
+    const uploaded = [];
+    for (const file of files) {
+      const { photo } = await api.uploadPhoto({ chapterId, caption, file });
+      uploaded.push(normalizePhoto(photo));
+    }
+
     setChapters((prev) =>
       prev.map((chapter) =>
         chapter.id === chapterId
-          ? { ...chapter, photos: [...chapter.photos, ...photoEntries] }
+          ? { ...chapter, photos: [...chapter.photos, ...uploaded] }
           : chapter,
       ),
     );
+
+    return uploaded.length;
   }, []);
 
   return {
     hydrated,
     user,
+    error,
     chapters,
     activeChapter,
     activeChapterId,
-    signIn,
+    register,
+    login,
     signOut,
     startChapterFromTemplate,
     openChapter,
