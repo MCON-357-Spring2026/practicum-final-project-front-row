@@ -9,6 +9,8 @@ export function JournalEntryForm({
   chapter,
   onBack,
   onAddStory,
+  onEditStory,
+  onDeleteStory,
   onAddGoal,
   onToggleGoal,
   onAddPhotos,
@@ -21,6 +23,11 @@ export function JournalEntryForm({
   const [goalNotes, setGoalNotes] = useState('');
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
+
+  // Tracks which story is being edited inline (null = none) and its draft text.
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editBody, setEditBody] = useState('');
 
   function showSaved(text) {
     setMessage(text);
@@ -86,6 +93,50 @@ export function JournalEntryForm({
       showSaved('Goal added.');
     } catch (err) {
       setMessage(err.message || 'Could not add goal.');
+    }
+  }
+
+  // Open the inline editor for a story and pre-fill it with current text.
+  function startEdit(story) {
+    setEditingId(story.id);
+    setEditTitle(story.title);
+    setEditBody(story.body);
+  }
+
+  // Close the inline editor without saving.
+  function cancelEdit() {
+    setEditingId(null);
+    setEditTitle('');
+    setEditBody('');
+  }
+
+  // Save the edited story via the API.
+  async function handleSaveEdit(entryId) {
+    if (!editTitle.trim() || !editBody.trim()) {
+      setMessage('Add both a title and story text.');
+      return;
+    }
+
+    try {
+      await onEditStory(entryId, { title: editTitle, body: editBody });
+      cancelEdit();
+      showSaved('Story updated.');
+    } catch (err) {
+      setMessage(err.message || 'Could not update story.');
+    }
+  }
+
+  // Delete a story after a quick confirmation.
+  async function handleDelete(entryId) {
+    if (!window.confirm('Delete this story?')) {
+      return;
+    }
+
+    try {
+      await onDeleteStory(entryId);
+      showSaved('Story deleted.');
+    } catch (err) {
+      setMessage(err.message || 'Could not delete story.');
     }
   }
 
@@ -211,12 +262,63 @@ export function JournalEntryForm({
 
       {chapter.stories.length > 0 && (
         <section className="panel">
-          <h2>Recent stories</h2>
+          <h2>Your stories</h2>
           <ul className="story-preview-list">
-            {chapter.stories.slice(0, 3).map((story) => (
+            {chapter.stories.map((story) => (
               <li key={story.id}>
-                <strong>{story.title}</strong>
-                <p className="muted">{story.body.slice(0, 120)}…</p>
+                {editingId === story.id ? (
+                  // Inline edit form for this story.
+                  <div className="stack-form">
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                    />
+                    <textarea
+                      rows={3}
+                      value={editBody}
+                      onChange={(e) => setEditBody(e.target.value)}
+                    />
+                    <div className="chapter-row__actions">
+                      <button
+                        type="button"
+                        className="btn btn--primary"
+                        onClick={() => handleSaveEdit(story.id)}
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={cancelEdit}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // Read-only view with Edit and Delete actions.
+                  <>
+                    <strong>{story.title}</strong>
+                    <p className="muted">{story.body}</p>
+                    <div className="chapter-row__actions">
+                      <button
+                        type="button"
+                        className="btn btn--secondary"
+                        onClick={() => startEdit(story)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={() => handleDelete(story.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
               </li>
             ))}
           </ul>

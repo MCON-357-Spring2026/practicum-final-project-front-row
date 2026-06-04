@@ -164,6 +164,33 @@ export function useChapterlyState() {
     );
   }, []);
 
+  // Saves edits to an existing story, then swaps it in chapter state.
+  const editStory = useCallback(async (chapterId, entryId, { title, body }) => {
+    const { entry } = await api.updateJournalEntry(entryId, { title, body });
+    setChapters((prev) =>
+      prev.map((chapter) =>
+        chapter.id === chapterId
+          ? {
+              ...chapter,
+              stories: chapter.stories.map((s) => (s.id === entryId ? entry : s)),
+            }
+          : chapter,
+      ),
+    );
+  }, []);
+
+  // Deletes a story, then removes it from chapter state.
+  const deleteStory = useCallback(async (chapterId, entryId) => {
+    await api.deleteJournalEntry(entryId);
+    setChapters((prev) =>
+      prev.map((chapter) =>
+        chapter.id === chapterId
+          ? { ...chapter, stories: chapter.stories.filter((s) => s.id !== entryId) }
+          : chapter,
+      ),
+    );
+  }, []);
+
   const addGoal = useCallback(async (chapterId, { title, notes }) => {
     const { goal } = await api.createGoal({ chapterId, title, notes });
     setChapters((prev) =>
@@ -229,6 +256,8 @@ export function useChapterlyState() {
     startChapterFromTemplate,
     openChapter,
     addStory,
+    editStory,
+    deleteStory,
     addGoal,
     toggleGoal,
     addPhotos,

@@ -25,6 +25,8 @@ export function App() {
     startChapterFromTemplate,
     openChapter,
     addStory,
+    editStory,
+    deleteStory,
     addGoal,
     toggleGoal,
     addPhotos,
@@ -110,6 +112,8 @@ export function App() {
           chapter={activeChapter}
           onBack={() => setView('dashboard')}
           onAddStory={(payload) => addStory(activeChapter.id, payload)}
+          onEditStory={(entryId, payload) => editStory(activeChapter.id, entryId, payload)}
+          onDeleteStory={(entryId) => deleteStory(activeChapter.id, entryId)}
           onAddGoal={(payload) => addGoal(activeChapter.id, payload)}
           onToggleGoal={(goalId) => toggleGoal(activeChapter.id, goalId)}
           onAddPhotos={(entries) => addPhotos(activeChapter.id, entries)}

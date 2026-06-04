@@ -106,6 +106,10 @@ export const api = {
     request(`/journal-entries${chapterId ? `?chapterId=${chapterId}` : ''}`),
   createJournalEntry: (data) =>
     request('/journal-entries', { method: 'POST', body: data }),
+  updateJournalEntry: (id, data) =>
+    request(`/journal-entries/${id}`, { method: 'PUT', body: data }),
+  deleteJournalEntry: (id) =>
+    request(`/journal-entries/${id}`, { method: 'DELETE' }),
 
   // --- Goals ---
   listGoals: (chapterId) => request(`/goals${chapterId ? `?chapterId=${chapterId}` : ''}`),
