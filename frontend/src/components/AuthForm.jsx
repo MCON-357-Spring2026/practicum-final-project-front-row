@@ -22,6 +22,13 @@ export function AuthForm({ onLogin, onRegister }) {
       return;
     }
 
+    // Basic email format check: something@something.something
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email.trim())) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
     if (mode === 'signup') {
       if (!displayName.trim()) {
         setError('Please add a display name for sign up.');

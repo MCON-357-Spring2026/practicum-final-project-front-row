@@ -153,16 +153,42 @@ export function useChapterlyState() {
     setActiveChapterId(chapterId);
   }, []);
 
-  const addStory = useCallback(async (chapterId, { title, body }) => {
-    const { entry } = await api.createJournalEntry({ chapterId, title, body });
+  // Renames a chapter, then updates it in state (keeps its stories/goals/photos).
+  const renameChapter = useCallback(async (chapterId, title) => {
+    const { chapter } = await api.updateChapter(chapterId, { title });
     setChapters((prev) =>
-      prev.map((chapter) =>
-        chapter.id === chapterId
-          ? { ...chapter, stories: [entry, ...chapter.stories] }
-          : chapter,
-      ),
+      prev.map((c) => (c.id === chapterId ? { ...c, title: chapter.title } : c)),
     );
   }, []);
+
+  // Deletes a chapter (and its stories/goals/photos via cascade), then drops it
+  // from state. If the deleted chapter was open, return to the dashboard.
+  const deleteChapter = useCallback(async (chapterId) => {
+    await api.deleteChapter(chapterId);
+    setChapters((prev) => prev.filter((c) => c.id !== chapterId));
+    setActiveChapterId((current) => (current === chapterId ? null : current));
+  }, []);
+
+  const addStory = useCallback(
+    async (chapterId, { title, body, entryDate, details, mood }) => {
+      const { entry } = await api.createJournalEntry({
+        chapterId,
+        title,
+        body,
+        entryDate,
+        details,
+        mood,
+      });
+      setChapters((prev) =>
+        prev.map((chapter) =>
+          chapter.id === chapterId
+            ? { ...chapter, stories: [entry, ...chapter.stories] }
+            : chapter,
+        ),
+      );
+    },
+    [],
+  );
 
   // Saves edits to an existing story, then swaps it in chapter state.
   const editStory = useCallback(async (chapterId, entryId, { title, body }) => {
@@ -255,6 +281,8 @@ export function useChapterlyState() {
     signOut,
     startChapterFromTemplate,
     openChapter,
+    renameChapter,
+    deleteChapter,
     addStory,
     editStory,
     deleteStory,

@@ -1,20 +1,37 @@
 /**
- * Global styles for Chapterly — warm scrapbook palette, simple layout.
+ * Global styles for Chapterly.
+ * Aesthetic: a fancy, "keepsake journal" look — elegant Fraunces headings,
+ * friendly rounded Nunito body text, warm cream paper, and soft blush accents
+ * for a cute-but-polished vibe.
  */
 
 :root {
-  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  color: #2c2416;
-  background: #f4efe6;
-  --ink: #2c2416;
-  --muted: #6b5f4f;
-  --cream: #faf6f0;
-  --paper: #fffdf8;
-  --accent: #8b5a3c;
-  --accent-dark: #6d452e;
-  --border: #e2d6c3;
-  --shadow: 0 8px 24px rgba(44, 36, 22, 0.08);
+  font-family: 'Nunito', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  line-height: 1.6;
+  color: #3a2c1d;
+
+  /* Core palette */
+  --ink: #3a2c1d;
+  --muted: #8a7763;
+  --cream: #fbf5ec;
+  --paper: #fffdf9;
+  --accent: #b06a45; /* warm terracotta */
+  --accent-dark: #8a5234;
+  --rose: #e0918f; /* blush */
+  --rose-soft: #f6dcd9;
+  --gold: #d8a657;
+  --border: #ecdcc7;
+
+  /* Effects */
+  --shadow-sm: 0 2px 8px rgba(86, 58, 32, 0.06);
+  --shadow: 0 14px 34px rgba(86, 58, 32, 0.12);
+  --shadow-lg: 0 24px 60px rgba(86, 58, 32, 0.18);
+  --radius: 20px;
+  --radius-sm: 14px;
+  --ring: 0 0 0 4px rgba(224, 145, 143, 0.28);
+  --transition: 180ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
 }
 
 * {
@@ -24,17 +41,50 @@
 body {
   margin: 0;
   min-height: 100vh;
+  background-color: #f7eee1;
+  /* Layered, soft "blob" lighting for a dreamy keepsake feel. */
+  background-image:
+    radial-gradient(38rem 38rem at 12% -8%, rgba(224, 145, 143, 0.28), transparent 60%),
+    radial-gradient(34rem 34rem at 108% 0%, rgba(216, 166, 87, 0.22), transparent 55%),
+    radial-gradient(40rem 40rem at 50% 120%, rgba(176, 106, 69, 0.16), transparent 60%);
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+h1 {
+  font-size: clamp(1.9rem, 1.2rem + 2.4vw, 2.7rem);
+  line-height: 1.1;
 }
 
 .app-shell {
-  max-width: 960px;
+  max-width: 980px;
   margin: 0 auto;
-  padding: 24px 16px 48px;
+  padding: 32px 18px 64px;
+  animation: rise var(--transition);
 }
 
 .app-shell--auth {
-  max-width: 440px;
-  padding-top: 48px;
+  max-width: 460px;
+  padding-top: 7vh;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .muted {
@@ -52,56 +102,125 @@ body {
   border: 0;
 }
 
-/* --- Buttons & forms --- */
+/* --- Buttons --- */
 
 .btn {
   border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  padding: 0.6rem 1.25rem;
   font: inherit;
+  font-weight: 700;
   cursor: pointer;
   background: var(--paper);
   color: var(--ink);
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition),
+    background var(--transition);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
 }
 
 .btn--primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
   color: #fff;
+  box-shadow: 0 8px 20px rgba(138, 82, 52, 0.28);
 }
 
 .btn--primary:hover {
-  background: var(--accent-dark);
+  box-shadow: 0 12px 26px rgba(138, 82, 52, 0.36);
 }
 
 .btn--secondary {
   border-color: var(--border);
-  background: var(--cream);
+  background: var(--paper);
+  color: var(--accent-dark);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn--secondary:hover {
+  border-color: var(--rose);
+  background: var(--rose-soft);
+  color: var(--accent-dark);
 }
 
 .btn--ghost {
   background: transparent;
   color: var(--accent);
-  padding-left: 0;
+  box-shadow: none;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.btn--ghost:hover {
+  color: var(--accent-dark);
 }
 
 .btn--block {
   width: 100%;
 }
 
+.btn--danger {
+  background: transparent;
+  color: #c0392b;
+  box-shadow: none;
+  border: 1px solid rgba(192, 57, 43, 0.3);
+}
+
+.btn--danger:hover {
+  background: #c0392b;
+  color: #fff;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+  transform: none;
+}
+
+/* --- Forms --- */
+
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.9rem;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-dark);
 }
 
 .field input,
-.field textarea {
+.field textarea,
+.field select {
   font: inherit;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  font-weight: 500;
+  color: var(--ink);
+  padding: 0.7rem 0.85rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
   background: #fff;
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: #bcaa94;
+}
+
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--rose);
+  box-shadow: var(--ring);
 }
 
 .field--compact input {
@@ -111,13 +230,18 @@ body {
 .stack-form {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 1rem;
 }
 
 .form-error {
-  color: #9b2c2c;
+  color: #b03a3a;
+  background: #fbe7e6;
+  border: 1px solid #f2c7c5;
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.8rem;
   margin: 0;
   font-size: 0.9rem;
+  font-weight: 600;
 }
 
 /* --- Auth card --- */
@@ -125,55 +249,74 @@ body {
 .auth-card {
   background: var(--paper);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 1.75rem;
-  box-shadow: var(--shadow);
+  border-radius: 26px;
+  padding: 2.25rem 2rem;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--rose), var(--gold), var(--accent));
 }
 
 .auth-card__hero {
   text-align: center;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .auth-card__hero h1 {
-  margin: 0.25rem 0;
+  margin: 0.35rem 0;
 }
 
 .brand-mark {
-  font-size: 1.5rem;
+  font-size: 2rem;
   margin: 0;
-  color: var(--accent);
+  color: var(--gold);
+  filter: drop-shadow(0 2px 6px rgba(216, 166, 87, 0.4));
 }
 
 .tab-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem;
 }
 
 .tab {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.5rem;
-  background: var(--cream);
+  border: none;
+  border-radius: 999px;
+  padding: 0.55rem;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
   cursor: pointer;
+  transition: all var(--transition);
 }
 
 .tab--active {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
-  border-color: var(--accent);
+  box-shadow: 0 6px 16px rgba(138, 82, 52, 0.28);
 }
 
-/* --- Dashboard --- */
+/* --- Page headers --- */
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .page-header h1 {
@@ -183,6 +326,7 @@ body {
 .page-header--compact {
   flex-direction: column;
   align-items: stretch;
+  gap: 0.75rem;
 }
 
 .page-header__row {
@@ -194,31 +338,65 @@ body {
 }
 
 .section-lead {
-  margin-top: -0.5rem;
+  margin-top: -0.35rem;
+  margin-bottom: 1.25rem;
 }
+
+section[aria-labelledby] {
+  margin-bottom: 2.25rem;
+}
+
+/* --- Template cards --- */
 
 .template-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 1.1rem;
   margin-bottom: 2rem;
 }
 
 .template-card {
   background: var(--paper);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
+  border-radius: var(--radius);
+  padding: 1.35rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition),
+    border-color var(--transition);
+}
+
+.template-card:hover {
+  transform: translateY(-4px);
   box-shadow: var(--shadow);
+  border-color: var(--rose);
 }
 
 .template-card__emoji {
-  font-size: 1.75rem;
+  font-size: 2.1rem;
+  width: 3.4rem;
+  height: 3.4rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--rose-soft), #fff);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 0.25rem;
 }
 
 .template-card h3 {
-  margin: 0.35rem 0;
+  margin: 0.2rem 0 0;
 }
+
+.template-card .btn {
+  margin-top: auto;
+}
+
+/* --- Chapter list --- */
 
 .chapter-list {
   list-style: none;
@@ -226,7 +404,7 @@ body {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
 .chapter-row {
@@ -237,63 +415,215 @@ body {
   flex-wrap: wrap;
   background: var(--paper);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition);
+}
+
+.chapter-row:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
 }
 
 .chapter-row__main {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.85rem;
   align-items: center;
+}
+
+.chapter-row__main > span[aria-hidden] {
+  font-size: 1.8rem;
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--rose-soft), #fff);
+  box-shadow: var(--shadow-sm);
+}
+
+.chapter-row__main strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.chapter-row__main p {
+  margin: 0.1rem 0 0;
+  font-size: 0.85rem;
+}
+
+/* The chapter name/info acts as a button that opens the chapter view. */
+.chapter-open {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chapter-open .muted {
+  display: block;
+  margin: 0.1rem 0 0;
+  font-size: 0.85rem;
+}
+
+.chapter-open:hover strong {
+  color: var(--accent-dark);
+  text-decoration: underline;
+}
+
+/* Chapter "type" (template) label shown under the chapter name. */
+.chapter-type {
+  display: inline-block;
+  margin: 0.25rem 0 0.1rem !important;
+  padding: 0.1rem 0.6rem;
+  background: linear-gradient(135deg, var(--rose-soft), #fff);
+  border: 1px solid var(--rose);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--accent-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .chapter-row__actions {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.chapter-rename {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.chapter-rename input {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.55rem 0.8rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-width: 12rem;
+}
+
+.chapter-rename input:focus {
+  outline: none;
+  border-color: var(--rose);
+  box-shadow: var(--ring);
+}
+
+/* Mood pill (date · mood) used in the journal list and the scrapbook. */
+.mood-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: linear-gradient(135deg, var(--rose-soft), #fff);
+  border: 1px solid var(--rose);
+  color: var(--accent-dark);
+  padding: 0.15rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .empty-state {
-  padding: 1rem;
+  padding: 1.5rem;
   background: var(--paper);
-  border-radius: 12px;
-  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  border: 1.5px dashed var(--border);
+  color: var(--muted);
+  text-align: center;
 }
 
-/* --- Journal --- */
+/* --- Panels (journal) --- */
 
 .panel {
   background: var(--paper);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.25rem;
-  margin-bottom: 1rem;
-  box-shadow: var(--shadow);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .panel h2 {
   margin-top: 0;
-}
-
-.toast {
-  background: #e8f5e9;
-  border: 1px solid #a5d6a7;
-  color: #2e5d32;
-  padding: 0.5rem 0.75rem;
-  border-radius: 8px;
   margin-bottom: 1rem;
 }
+
+/* Floating "pop up" confirmation (e.g. Story saved) — visible at any scroll. */
+.toast {
+  position: fixed;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  pointer-events: none;
+  background: linear-gradient(135deg, #fff, var(--rose-soft));
+  border: 1px solid var(--rose);
+  color: var(--accent-dark);
+  padding: 0.85rem 1.5rem;
+  border-radius: 999px;
+  margin: 0;
+  font-weight: 800;
+  box-shadow: var(--shadow-lg);
+  animation: pop 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-14px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* --- Goals --- */
 
 .goal-list {
   list-style: none;
   padding: 0;
-  margin: 1rem 0 0;
+  margin: 1.25rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.goal-list li {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.9rem;
 }
 
 .goal-check {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.6rem;
   align-items: center;
   cursor: pointer;
+  font-weight: 600;
+}
+
+.goal-check input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--accent);
 }
 
 .goal-done {
@@ -301,129 +631,275 @@ body {
   color: var(--muted);
 }
 
+/* --- Mood picker --- */
+
+.mood-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.mood-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  width: 4.4rem;
+  padding: 0.6rem 0.35rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  color: var(--muted);
+  transition:
+    transform var(--transition),
+    border-color var(--transition),
+    background var(--transition),
+    box-shadow var(--transition);
+}
+
+.mood-chip:hover {
+  transform: translateY(-2px);
+  border-color: var(--rose);
+  box-shadow: var(--shadow-sm);
+}
+
+.mood-chip--active {
+  border-color: var(--rose);
+  background: linear-gradient(135deg, var(--rose-soft), #fff);
+  color: var(--accent-dark);
+  box-shadow: var(--ring);
+}
+
+.mood-chip__face {
+  font-size: 1.7rem;
+  line-height: 1;
+  transition: transform var(--transition);
+}
+
+.mood-chip:hover .mood-chip__face,
+.mood-chip--active .mood-chip__face {
+  transform: scale(1.15);
+}
+
+.mood-chip__label {
+  font-size: 0.68rem;
+}
+
+.mood-select {
+  align-self: flex-start;
+  max-width: 220px;
+}
+
+/* --- Story list --- */
+
 .story-preview-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
 .story-preview-list li {
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--border);
+  padding: 1rem 1.1rem;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.story-preview-list strong {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+.story-preview-list p {
+  margin: 0.25rem 0;
 }
 
 /* --- Scrapbook --- */
 
 .scrapbook {
   background: var(--paper);
-  border: 2px solid var(--border);
-  border-radius: 4px;
-  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
 .scrapbook__cover {
-  background: linear-gradient(135deg, #d4a574 0%, #8b5a3c 100%);
+  background:
+    radial-gradient(20rem 12rem at 80% -20%, rgba(255, 255, 255, 0.35), transparent 60%),
+    linear-gradient(135deg, var(--rose) 0%, var(--accent) 55%, var(--accent-dark) 100%);
   color: #fff;
-  padding: 2rem 1.5rem;
+  padding: 2.75rem 1.75rem;
   text-align: center;
+}
+
+.scrapbook__cover-emoji {
+  display: inline-grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin: 0 auto 0.75rem;
+  font-size: 2.4rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.scrapbook__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .scrapbook__kicker {
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.75rem;
-  margin: 0 0 0.5rem;
-  opacity: 0.9;
+  letter-spacing: 0.22em;
+  font-size: 0.72rem;
+  font-weight: 800;
+  margin: 0 0 0.6rem;
+  opacity: 0.92;
 }
 
 .scrapbook__cover h2 {
   margin: 0;
-  font-size: 2rem;
+  color: #fff;
+  font-size: clamp(1.8rem, 1.1rem + 2.6vw, 2.6rem);
 }
 
 .scrapbook__subtitle {
-  margin: 0.75rem 0 0;
+  margin: 0.85rem 0 0;
   opacity: 0.95;
   font-style: italic;
+  font-family: var(--font-display);
 }
 
 .scrapbook__grid {
   display: grid;
   grid-template-columns: 1fr 1.2fr;
-  gap: 1rem;
-  padding: 1.25rem;
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+
+/* When a chapter has no photos, let the stories use the full width. */
+.scrapbook__grid--no-photos {
+  grid-template-columns: 1fr;
 }
 
 .scrapbook__photos {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
+  gap: 0.6rem;
   align-content: start;
 }
 
 .scrapbook__photo {
   margin: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--cream);
+  box-shadow: var(--shadow-sm);
 }
 
 .scrapbook__photo img {
   width: 100%;
-  height: 100px;
+  height: 110px;
   object-fit: cover;
   display: block;
 }
 
 .scrapbook__photo figcaption {
   font-size: 0.75rem;
-  padding: 0.35rem;
+  padding: 0.4rem 0.5rem;
 }
 
 .scrapbook__placeholder,
 .scrapbook__empty {
   color: var(--muted);
   font-style: italic;
-  padding: 1rem;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
+  padding: 1.25rem;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-sm);
 }
 
 .scrapbook__stories {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
 .scrapbook__story-card {
   background: var(--cream);
-  border-left: 4px solid var(--accent);
-  padding: 0.75rem 1rem;
-  border-radius: 0 8px 8px 0;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--rose);
+  padding: 0.9rem 1.1rem;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.scrapbook__story-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .scrapbook__story-card time {
   font-size: 0.75rem;
-  color: var(--muted);
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .scrapbook__story-card h3 {
-  margin: 0.25rem 0;
+  margin: 0.3rem 0;
+}
+
+.scrapbook__details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+
+.detail-chip {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.18rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.detail-chip strong {
+  color: var(--accent);
+  font-weight: 800;
 }
 
 .scrapbook__goals {
   grid-column: 1 / -1;
-  background: #f0e8dc;
-  border-radius: 8px;
-  padding: 1rem;
+  background: linear-gradient(135deg, var(--rose-soft), var(--cream));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1.25rem;
 }
 
 .scrapbook__goals ul {
   list-style: none;
   padding: 0;
   margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .scrapbook__goals li.done {
@@ -434,6 +910,7 @@ body {
 .scrapbook__goal-stats {
   margin: 0;
   font-size: 0.85rem;
+  font-weight: 700;
 }
 
 @media (max-width: 640px) {

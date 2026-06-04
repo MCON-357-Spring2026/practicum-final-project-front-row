@@ -26,7 +26,7 @@ async function assertChapterOwnedByUser(chapterId, userId) {
  */
 async function getOwnedEntry(entryId, userId) {
   const result = await query(
-    `SELECT s.id, s.chapter_id, s.title, s.body, s.mood, s.created_at, s.updated_at
+    `SELECT s.id, s.chapter_id, s.title, s.body, s.mood, s.entry_date, s.details, s.created_at, s.updated_at
      FROM stories s
      INNER JOIN chapters c ON c.id = s.chapter_id
      WHERE s.id = $1 AND c.user_id = $2`,
@@ -50,6 +50,8 @@ function mapEntry(row) {
     title: row.title,
     body: row.body,
     mood: row.mood,
+    entryDate: row.entry_date,
+    details: row.details ?? {},
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -65,7 +67,7 @@ export async function listJournalEntries(userId, { chapterId } = {}) {
 
   const params = [userId];
   let sql = `
-    SELECT s.id, s.chapter_id, s.title, s.body, s.mood, s.created_at, s.updated_at
+    SELECT s.id, s.chapter_id, s.title, s.body, s.mood, s.entry_date, s.details, s.created_at, s.updated_at
     FROM stories s
     INNER JOIN chapters c ON c.id = s.chapter_id
     WHERE c.user_id = $1
@@ -86,14 +88,25 @@ export async function getJournalEntry(userId, entryId) {
   return getOwnedEntry(entryId, userId);
 }
 
-export async function createJournalEntry(userId, { chapterId, title, body, mood }) {
+export async function createJournalEntry(
+  userId,
+  { chapterId, title, body, mood, entryDate, details },
+) {
   await assertChapterOwnedByUser(chapterId, userId);
 
   const result = await query(
-    `INSERT INTO stories (chapter_id, title, body, mood)
-     VALUES ($1, $2, $3, $4)
-     RETURNING id, chapter_id, title, body, mood, created_at, updated_at`,
-    [chapterId, title.trim(), body.trim(), mood?.trim() || null],
+    `INSERT INTO stories (chapter_id, title, body, mood, entry_date, details)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, chapter_id, title, body, mood, entry_date, details, created_at, updated_at`,
+    [
+      chapterId,
+      title.trim(),
+      body.trim(),
+      mood?.trim() || null,
+      entryDate || null,
+      // Store template-specific fields as JSON (defaults to an empty object).
+      JSON.stringify(details ?? {}),
+    ],
   );
 
   return mapEntry(result.rows[0]);
@@ -109,7 +122,7 @@ export async function updateJournalEntry(userId, entryId, { title, body, mood })
          mood = COALESCE($3, mood),
          updated_at = now()
      WHERE id = $4
-     RETURNING id, chapter_id, title, body, mood, created_at, updated_at`,
+     RETURNING id, chapter_id, title, body, mood, entry_date, details, created_at, updated_at`,
     [
       title !== undefined ? title.trim() : null,
       body !== undefined ? body.trim() : null,

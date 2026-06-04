@@ -1,22 +1,41 @@
 /**
  * Journal Entry Form — daily stories, photo uploads, and chapter goals.
- * Submissions update the active chapter in parent state (then localStorage).
+ * Submissions are saved to the backend through the parent's handlers.
+ *
+ * Each entry can capture a date plus a set of personalized prompts that depend
+ * on the chapter's template (see chapterTemplates.js), all stored on the entry.
  */
 
 import { useState } from 'react';
+import { getChapterFields } from '../constants/chapterTemplates.js';
+import { MOODS, moodValue } from '../constants/moods.js';
+
+// Today's date as YYYY-MM-DD for the default value of date inputs.
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// Builds an empty value map for the given prompt fields ({ course: '', ... }).
+function emptyDetails(fields) {
+  return Object.fromEntries(fields.map((field) => [field.name, '']));
+}
 
 export function JournalEntryForm({
   chapter,
   onBack,
   onAddStory,
-  onEditStory,
-  onDeleteStory,
   onAddGoal,
   onToggleGoal,
   onAddPhotos,
 }) {
+  // Personalized prompts for this chapter type (may be empty).
+  const templateFields = getChapterFields(chapter.templateId);
+
   const [storyTitle, setStoryTitle] = useState('');
   const [storyBody, setStoryBody] = useState('');
+  const [entryDate, setEntryDate] = useState(todayISO());
+  const [mood, setMood] = useState('');
+  const [detailValues, setDetailValues] = useState(() => emptyDetails(templateFields));
   const [photoCaption, setPhotoCaption] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [goalTitle, setGoalTitle] = useState('');
@@ -24,14 +43,14 @@ export function JournalEntryForm({
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  // Tracks which story is being edited inline (null = none) and its draft text.
-  const [editingId, setEditingId] = useState(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editBody, setEditBody] = useState('');
-
   function showSaved(text) {
     setMessage(text);
     window.setTimeout(() => setMessage(''), 2500);
+  }
+
+  // Updates one personalized prompt value as the user types.
+  function handleDetailChange(name, value) {
+    setDetailValues((prev) => ({ ...prev, [name]: value }));
   }
 
   async function handleSaveStory(event) {
@@ -41,10 +60,24 @@ export function JournalEntryForm({
       return;
     }
 
+    // Keep only the prompts the user actually filled in.
+    const details = Object.fromEntries(
+      Object.entries(detailValues).filter(([, value]) => value.trim() !== ''),
+    );
+
     try {
-      await onAddStory({ title: storyTitle, body: storyBody });
+      await onAddStory({
+        title: storyTitle,
+        body: storyBody,
+        entryDate,
+        mood: mood.trim(),
+        details,
+      });
       setStoryTitle('');
       setStoryBody('');
+      setEntryDate(todayISO());
+      setMood('');
+      setDetailValues(emptyDetails(templateFields));
       showSaved('Story saved.');
     } catch (err) {
       setMessage(err.message || 'Could not save story.');
@@ -96,50 +129,6 @@ export function JournalEntryForm({
     }
   }
 
-  // Open the inline editor for a story and pre-fill it with current text.
-  function startEdit(story) {
-    setEditingId(story.id);
-    setEditTitle(story.title);
-    setEditBody(story.body);
-  }
-
-  // Close the inline editor without saving.
-  function cancelEdit() {
-    setEditingId(null);
-    setEditTitle('');
-    setEditBody('');
-  }
-
-  // Save the edited story via the API.
-  async function handleSaveEdit(entryId) {
-    if (!editTitle.trim() || !editBody.trim()) {
-      setMessage('Add both a title and story text.');
-      return;
-    }
-
-    try {
-      await onEditStory(entryId, { title: editTitle, body: editBody });
-      cancelEdit();
-      showSaved('Story updated.');
-    } catch (err) {
-      setMessage(err.message || 'Could not update story.');
-    }
-  }
-
-  // Delete a story after a quick confirmation.
-  async function handleDelete(entryId) {
-    if (!window.confirm('Delete this story?')) {
-      return;
-    }
-
-    try {
-      await onDeleteStory(entryId);
-      showSaved('Story deleted.');
-    } catch (err) {
-      setMessage(err.message || 'Could not delete story.');
-    }
-  }
-
   return (
     <div className="page">
       <header className="page-header page-header--compact">
@@ -163,6 +152,14 @@ export function JournalEntryForm({
       <form className="panel stack-form" onSubmit={handleSaveStory}>
         <h2>Today&apos;s story</h2>
         <label className="field">
+          <span>Date</span>
+          <input
+            type="date"
+            value={entryDate}
+            onChange={(e) => setEntryDate(e.target.value)}
+          />
+        </label>
+        <label className="field">
           <span>Title</span>
           <input
             type="text"
@@ -171,6 +168,20 @@ export function JournalEntryForm({
             placeholder="Coffee with a friend"
           />
         </label>
+
+        {/* Personalized prompts for this chapter type (e.g. date number, restaurant). */}
+        {templateFields.map((field) => (
+          <label className="field" key={field.name}>
+            <span>{field.label}</span>
+            <input
+              type={field.type ?? 'text'}
+              value={detailValues[field.name] ?? ''}
+              onChange={(e) => handleDetailChange(field.name, e.target.value)}
+              placeholder={field.placeholder}
+            />
+          </label>
+        ))}
+
         <label className="field">
           <span>Story</span>
           <textarea
@@ -180,6 +191,46 @@ export function JournalEntryForm({
             placeholder="What happened today? How did it feel?"
           />
         </label>
+        <div className="field">
+          <span>Mood (optional)</span>
+          {/* Pick a mood by tapping a face… */}
+          <div className="mood-picker" role="group" aria-label="Choose a mood">
+            {MOODS.map((option) => {
+              const value = moodValue(option);
+              const isActive = mood === value;
+              return (
+                <button
+                  type="button"
+                  key={option.label}
+                  className={isActive ? 'mood-chip mood-chip--active' : 'mood-chip'}
+                  aria-pressed={isActive}
+                  title={option.label}
+                  // Tap again to clear the mood.
+                  onClick={() => setMood(isActive ? '' : value)}
+                >
+                  <span className="mood-chip__face" aria-hidden="true">
+                    {option.emoji}
+                  </span>
+                  <span className="mood-chip__label">{option.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          {/* …or choose the same mood from a dropdown. */}
+          <select
+            className="mood-select"
+            value={mood}
+            onChange={(e) => setMood(e.target.value)}
+            aria-label="Mood dropdown"
+          >
+            <option value="">No mood</option>
+            {MOODS.map((option) => (
+              <option key={option.label} value={moodValue(option)}>
+                {moodValue(option)}
+              </option>
+            ))}
+          </select>
+        </div>
         <button type="submit" className="btn btn--primary">
           Save story
         </button>
@@ -259,71 +310,6 @@ export function JournalEntryForm({
           </ul>
         )}
       </section>
-
-      {chapter.stories.length > 0 && (
-        <section className="panel">
-          <h2>Your stories</h2>
-          <ul className="story-preview-list">
-            {chapter.stories.map((story) => (
-              <li key={story.id}>
-                {editingId === story.id ? (
-                  // Inline edit form for this story.
-                  <div className="stack-form">
-                    <input
-                      type="text"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                    />
-                    <textarea
-                      rows={3}
-                      value={editBody}
-                      onChange={(e) => setEditBody(e.target.value)}
-                    />
-                    <div className="chapter-row__actions">
-                      <button
-                        type="button"
-                        className="btn btn--primary"
-                        onClick={() => handleSaveEdit(story.id)}
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn--ghost"
-                        onClick={cancelEdit}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  // Read-only view with Edit and Delete actions.
-                  <>
-                    <strong>{story.title}</strong>
-                    <p className="muted">{story.body}</p>
-                    <div className="chapter-row__actions">
-                      <button
-                        type="button"
-                        className="btn btn--secondary"
-                        onClick={() => startEdit(story)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn--ghost"
-                        onClick={() => handleDelete(story.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }

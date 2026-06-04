@@ -100,6 +100,8 @@ export const api = {
   // --- Chapters ---
   listChapters: () => request('/chapters'),
   createChapter: (data) => request('/chapters', { method: 'POST', body: data }),
+  updateChapter: (id, data) => request(`/chapters/${id}`, { method: 'PUT', body: data }),
+  deleteChapter: (id) => request(`/chapters/${id}`, { method: 'DELETE' }),
 
   // --- Journal entries (stories) ---
   listJournalEntries: (chapterId) =>

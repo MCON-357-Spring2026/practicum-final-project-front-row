@@ -31,7 +31,7 @@ journalRoutes.get(
 journalRoutes.post(
   '/',
   asyncHandler(async (req, res) => {
-    const { chapterId, title, body, mood } = req.body;
+    const { chapterId, title, body, mood, entryDate, details } = req.body;
 
     if (!chapterId || !title?.trim() || !body?.trim()) {
       return res.status(400).json({ error: 'chapterId, title, and body are required' });
@@ -42,6 +42,8 @@ journalRoutes.post(
       title,
       body,
       mood,
+      entryDate,
+      details,
     });
     res.status(201).json({ entry });
   }),

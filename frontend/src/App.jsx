@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { AuthForm } from './components/AuthForm.jsx';
 import { ChapterDashboard } from './components/ChapterDashboard.jsx';
 import { JournalEntryForm } from './components/JournalEntryForm.jsx';
+import { ChapterView } from './components/ChapterView.jsx';
 import { ScrapbookView } from './components/ScrapbookView.jsx';
 import { useChapterlyState } from './hooks/useChapterlyState.js';
 
@@ -24,6 +25,8 @@ export function App() {
     signOut,
     startChapterFromTemplate,
     openChapter,
+    renameChapter,
+    deleteChapter,
     addStory,
     editStory,
     deleteStory,
@@ -75,6 +78,12 @@ export function App() {
             openChapter(chapterId);
             setView('scrapbook');
           }}
+          onOpenChapter={(chapterId) => {
+            openChapter(chapterId);
+            setView('chapter');
+          }}
+          onRenameChapter={renameChapter}
+          onDeleteChapter={deleteChapter}
         />
       </main>
     );
@@ -100,6 +109,27 @@ export function App() {
             openChapter(chapterId);
             setView('scrapbook');
           }}
+          onOpenChapter={(chapterId) => {
+            openChapter(chapterId);
+            setView('chapter');
+          }}
+          onRenameChapter={renameChapter}
+          onDeleteChapter={deleteChapter}
+        />
+      </main>
+    );
+  }
+
+  if (view === 'chapter') {
+    return (
+      <main className="app-shell">
+        <ChapterView
+          chapter={activeChapter}
+          onBack={() => setView('dashboard')}
+          onAddStory={() => setView('journal')}
+          onOpenScrapbook={() => setView('scrapbook')}
+          onEditStory={(entryId, payload) => editStory(activeChapter.id, entryId, payload)}
+          onDeleteStory={(entryId) => deleteStory(activeChapter.id, entryId)}
         />
       </main>
     );
@@ -112,8 +142,6 @@ export function App() {
           chapter={activeChapter}
           onBack={() => setView('dashboard')}
           onAddStory={(payload) => addStory(activeChapter.id, payload)}
-          onEditStory={(entryId, payload) => editStory(activeChapter.id, entryId, payload)}
-          onDeleteStory={(entryId) => deleteStory(activeChapter.id, entryId)}
           onAddGoal={(payload) => addGoal(activeChapter.id, payload)}
           onToggleGoal={(goalId) => toggleGoal(activeChapter.id, goalId)}
           onAddPhotos={(entries) => addPhotos(activeChapter.id, entries)}

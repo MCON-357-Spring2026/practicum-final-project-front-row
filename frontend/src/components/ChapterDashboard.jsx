@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { CHAPTER_TEMPLATES } from '../constants/chapterTemplates.js';
+import { CHAPTER_TEMPLATES, getTemplateById } from '../constants/chapterTemplates.js';
 
 export function ChapterDashboard({
   user,
@@ -13,8 +13,15 @@ export function ChapterDashboard({
   onStartChapter,
   onOpenJournal,
   onOpenScrapbook,
+  onOpenChapter,
+  onRenameChapter,
+  onDeleteChapter,
 }) {
   const [customTitle, setCustomTitle] = useState('');
+
+  // Tracks which chapter is being renamed inline (null = none) and its draft name.
+  const [renamingId, setRenamingId] = useState(null);
+  const [draftName, setDraftName] = useState('');
 
   function handleStart(template) {
     if (template.id === 'custom' && !customTitle.trim()) {
@@ -22,6 +29,33 @@ export function ChapterDashboard({
     }
     onStartChapter(template, customTitle);
     setCustomTitle('');
+  }
+
+  // Open the inline name editor for a chapter, pre-filled with its current name.
+  function startRename(chapter) {
+    setRenamingId(chapter.id);
+    setDraftName(chapter.title);
+  }
+
+  // Save the new name, then close the editor.
+  async function saveRename(chapterId) {
+    if (!draftName.trim()) {
+      return;
+    }
+    await onRenameChapter(chapterId, draftName.trim());
+    setRenamingId(null);
+    setDraftName('');
+  }
+
+  // Delete a chapter (and everything in it) after a quick confirmation.
+  async function handleDelete(chapter) {
+    const confirmed = window.confirm(
+      `Delete "${chapter.title}"? This also removes its stories, goals, and photos.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+    await onDeleteChapter(chapter.id);
   }
 
   return (
@@ -88,21 +122,66 @@ export function ChapterDashboard({
               <li key={chapter.id} className="chapter-row">
                 <div className="chapter-row__main">
                   <span aria-hidden="true">{chapter.emoji}</span>
-                  <div>
-                    <strong>{chapter.title}</strong>
-                    <p className="muted">
-                      {chapter.stories.length} stories · {chapter.goals.length} goals
-                      · {chapter.photos.length} photos
-                    </p>
-                  </div>
+                  {renamingId === chapter.id ? (
+                    // Inline editor for renaming this chapter.
+                    <div className="chapter-rename">
+                      <input
+                        type="text"
+                        value={draftName}
+                        onChange={(e) => setDraftName(e.target.value)}
+                        placeholder="Chapter name"
+                        aria-label="Chapter name"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn--primary"
+                        onClick={() => saveRename(chapter.id)}
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={() => setRenamingId(null)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    // Click the chapter to open its regular reading view.
+                    <button
+                      type="button"
+                      className="chapter-open"
+                      onClick={() => onOpenChapter(chapter.id)}
+                    >
+                      <strong>{chapter.title}</strong>
+                      {/* The chapter "type" (its template) shown under the name. */}
+                      {getTemplateById(chapter.templateId) && (
+                        <span className="chapter-type">
+                          {getTemplateById(chapter.templateId).title}
+                        </span>
+                      )}
+                      <span className="muted">
+                        {chapter.stories.length} stories · {chapter.goals.length} goals
+                        · {chapter.photos.length} photos
+                      </span>
+                    </button>
+                  )}
                 </div>
                 <div className="chapter-row__actions">
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={() => startRename(chapter)}
+                  >
+                    Rename
+                  </button>
                   <button
                     type="button"
                     className="btn btn--secondary"
                     onClick={() => onOpenJournal(chapter.id)}
                   >
-                    Journal
+                    Add story
                   </button>
                   <button
                     type="button"
@@ -110,6 +189,13 @@ export function ChapterDashboard({
                     onClick={() => onOpenScrapbook(chapter.id)}
                   >
                     Scrapbook
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--danger"
+                    onClick={() => handleDelete(chapter)}
+                  >
+                    Delete
                   </button>
                 </div>
               </li>

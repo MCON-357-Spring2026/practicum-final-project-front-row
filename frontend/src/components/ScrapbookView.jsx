@@ -3,10 +3,17 @@
  * This is what users would share as a digital scrapbook page.
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { getChapterFields } from '../constants/chapterTemplates.js';
 
 export function ScrapbookView({ chapter, onBack }) {
   const [shareMessage, setShareMessage] = useState('');
+  // The scrapbook page element we snapshot when exporting to PDF.
+  const scrapbookRef = useRef(null);
+  // Personalized prompt fields for this chapter type (used to label details).
+  const templateFields = getChapterFields(chapter.templateId);
   const completedGoals = chapter.goals.filter((g) => g.isCompleted).length;
   const subtitle =
     chapter.stories.length > 0
@@ -71,6 +78,47 @@ export function ScrapbookView({ chapter, onBack }) {
     }
   }
 
+  /**
+   * Renders the scrapbook page to an image and saves it as a multi-page PDF.
+   */
+  async function handleDownloadPdf() {
+    const node = scrapbookRef.current;
+    if (!node) return;
+
+    showShareMessage('Building your PDF…');
+    try {
+      // Snapshot the scrapbook DOM (useCORS lets remote Cloudinary photos render).
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#fffdf9',
+      });
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgData = canvas.toDataURL('image/png');
+
+      // Fit the whole scrapbook on one page: scale by the smaller ratio so it
+      // never overflows, then center it on the page.
+      const margin = 24;
+      const ratio = Math.min(
+        (pageWidth - margin * 2) / canvas.width,
+        (pageHeight - margin * 2) / canvas.height,
+      );
+      const imgWidth = canvas.width * ratio;
+      const imgHeight = canvas.height * ratio;
+      const x = (pageWidth - imgWidth) / 2;
+      const y = (pageHeight - imgHeight) / 2;
+      pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+
+      pdf.save(`${chapter.title} scrapbook.pdf`);
+      showShareMessage('PDF downloaded!');
+    } catch {
+      showShareMessage('Could not build the PDF.');
+    }
+  }
+
   return (
     <div className="page">
       <header className="page-header page-header--compact">
@@ -84,9 +132,14 @@ export function ScrapbookView({ chapter, onBack }) {
             </h1>
             <p className="muted">Auto-curated from your journal entries.</p>
           </div>
-          <button type="button" className="btn btn--secondary" onClick={handleShare}>
-            Share
-          </button>
+          <div className="scrapbook__actions">
+            <button type="button" className="btn btn--primary" onClick={handleDownloadPdf}>
+              ⬇ Download PDF
+            </button>
+            <button type="button" className="btn btn--secondary" onClick={handleShare}>
+              Copy
+            </button>
+          </div>
         </div>
       </header>
 
@@ -96,26 +149,40 @@ export function ScrapbookView({ chapter, onBack }) {
         </p>
       )}
 
-      <article className="scrapbook" aria-label={`${chapter.title} scrapbook`}>
+      <article
+        className="scrapbook"
+        aria-label={`${chapter.title} scrapbook`}
+        ref={scrapbookRef}
+      >
         <header className="scrapbook__cover">
+          {chapter.emoji && (
+            <span className="scrapbook__cover-emoji" aria-hidden="true">
+              {chapter.emoji}
+            </span>
+          )}
           <p className="scrapbook__kicker">Life Chapter</p>
           <h2>{chapter.title}</h2>
           <p className="scrapbook__subtitle">{subtitle}</p>
         </header>
 
-        <div className="scrapbook__grid">
-          <section className="scrapbook__photos" aria-label="Photo collage">
-            {chapter.photos.length === 0 ? (
-              <div className="scrapbook__placeholder">Photos appear here</div>
-            ) : (
-              chapter.photos.map((photo) => (
+        <div
+          className={
+            chapter.photos.length === 0
+              ? 'scrapbook__grid scrapbook__grid--no-photos'
+              : 'scrapbook__grid'
+          }
+        >
+          {/* Only show the photo collage when the chapter actually has photos. */}
+          {chapter.photos.length > 0 && (
+            <section className="scrapbook__photos" aria-label="Photo collage">
+              {chapter.photos.map((photo) => (
                 <figure key={photo.id} className="scrapbook__photo">
                   <img src={photo.previewUrl} alt={photo.caption || photo.name} />
                   {photo.caption && <figcaption>{photo.caption}</figcaption>}
                 </figure>
-              ))
-            )}
-          </section>
+              ))}
+            </section>
+          )}
 
           <section className="scrapbook__stories" aria-label="Stories">
             {chapter.stories.length === 0 ? (
@@ -123,10 +190,26 @@ export function ScrapbookView({ chapter, onBack }) {
             ) : (
               chapter.stories.map((story) => (
                 <article key={story.id} className="scrapbook__story-card">
-                  <time dateTime={story.createdAt}>
-                    {new Date(story.createdAt).toLocaleDateString()}
-                  </time>
+                  <div className="scrapbook__story-head">
+                    <time dateTime={story.entryDate || story.createdAt}>
+                      {new Date(story.entryDate || story.createdAt).toLocaleDateString()}
+                    </time>
+                    {/* Mood pill — shows the chosen emoji + label. */}
+                    {story.mood && <span className="mood-badge">{story.mood}</span>}
+                  </div>
                   <h3>{story.title}</h3>
+                  {/* Personalized prompt values saved with this entry, as chips. */}
+                  {templateFields.some((field) => story.details?.[field.name]) && (
+                    <div className="scrapbook__details">
+                      {templateFields
+                        .filter((field) => story.details?.[field.name])
+                        .map((field) => (
+                          <span className="detail-chip" key={field.name}>
+                            <strong>{field.label}:</strong> {story.details[field.name]}
+                          </span>
+                        ))}
+                    </div>
+                  )}
                   <p>{story.body}</p>
                 </article>
               ))
